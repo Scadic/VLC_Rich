@@ -182,7 +182,10 @@ if __name__ == "__main__":
     while True:
         while not vlc_running():
             # print("Could not find a running process of vlc")
-            ac = None
+            try:
+                RPC.close()
+            except:
+                print("No connection to Discord has been made yet!")
             RPC = None
             client_id = ''
         try:
