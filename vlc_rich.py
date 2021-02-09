@@ -211,13 +211,13 @@ if __name__ == "__main__":
                     cpu = subprocess.check_output(
                         cmd, shell=True).decode()
                     cpu = cpu.replace('\r', '').replace('\n', '').replace(
-                        'Name                                      ', '').replace('  ', '')
+                        'Name                                      ', '').replace('  ', '').replace('(TM)', '').replace('(R)', '')
                     ram = "%d GB" % int(
                         (round_tot_mem(unit="GB")))
                     cmd = "WMIC PATH WIN32_VIDEOCONTROLLER GET NAME"
                     gpu_ = subprocess.check_output(cmd, shell=True).decode()
                     gpu = gpu_.split('\n')[1].replace('\r', '').replace('\n', '').replace('  ', '').replace(
-                        'NVIDIA ', '').replace('AMD ', '').replace('INTEL ', '').replace('ATI ', '')
+                        'NVIDIA ', '').replace('AMD ', '').replace('INTEL ', '').replace('ATI ', '').replace('Intel(R)', '')
                     stats = "CPU: %s | \nRAM: %s | \nGPU: %s | \nCPU Usage: %d %% | \nRAM Usage: %d MB" % (
                         cpu, ram, gpu, int(psutil.cpu_percent()), psutil.virtual_memory().used/1024/1024)
                     print(stats)
