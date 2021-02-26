@@ -188,6 +188,7 @@ if __name__ == "__main__":
                 print("No connection to Discord has been made yet!")
             RPC = None
             client_id = ''
+            time.sleep(15.0)
         try:
             client_id = get_client_id()
             if client_id == "":
