@@ -11,6 +11,10 @@ from os.path import isfile, join, exists
 from os import getcwd
 from sys import exit
 from pypresence import Presence
+from host import Host
+
+
+host = Host()
 
 
 def signal_handler(signal, frame):
@@ -117,19 +121,20 @@ class Vlc_Status():
         return {'artist': artist, 'album': album, 'title': title, 'state': state}
 
 
-def get_client_id():
+def get_json_value_from_key(key):
     '''
     Decodes the 'client.json' file and retrieves the client id for the discord app.\n
     If you don't have an client id for your user then please read the article: \n
     https://discord.com/developers/docs/game-sdk/sdk-starter-guide \n
     Otherwise if you have a client id setup for your custom app then just paste it in the json file.\n
-    get_client_id() -> str
+    get_json_value_from_key() -> str
     '''
     if not exists(join(getcwd(), 'client.json')):
         print(f"The JSON file could not be found or does not exist!\nCreating new JSON file...")
         f = open("client.json", "w")
         data = {
-            "client_id": ""
+            "client_id": "",
+            "pwd": ""
         }
         dump(data, f, indent=2)
         f.close()
@@ -140,7 +145,7 @@ def get_client_id():
             if not isfile(join(getcwd(), 'client.json')):
                 print(f"Path {join(getcwd(), client_id)} is not a file, but a directory!")
                 return ""
-            client_id = load(f)["client_id"]
+            client_id = load(f)[str(key)]
             f.close()
             return client_id
         except JSONDecodeError as e:
@@ -156,13 +161,14 @@ def get_client_id():
         print(f"The JSON file could not be found or does not exist!\nCreating new JSON file...\n{e}")
         f = open("client.json", "w")
         data = {
-            "client_id": ""
+            "client_id": "",
+            "pwd": ""
         }
         dump(data, f, indent=2)
         f.close()
         exit(1)
 
-
+currently_playing = ""
 
 if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1].lower() == ("/?" or "-?"):
@@ -176,7 +182,9 @@ if __name__ == "__main__":
     elif len(sys.argv) == 3 and sys.argv[1].lower() == ("/p" or "-p"):
         password = str(sys.argv[2])
     else:
-        password = getpass.getpass()
+        password = get_json_value_from_key("pwd")
+        while password == "":
+            password = getpass.getpass('Password For VLC Web-interface: ')
     url = "http://localhost:8080/requests/status.xml"
     username = ''
     while True:
@@ -188,9 +196,9 @@ if __name__ == "__main__":
                 print("No connection to Discord has been made yet!")
             RPC = None
             client_id = ''
-            time.sleep(15.0)
+            time.sleep(2.5)
         try:
-            client_id = get_client_id()
+            client_id = get_json_value_from_key("client_id")
             if client_id == "":
                 print(f"Client ID is missing!")
                 exit(1)
@@ -213,18 +221,23 @@ if __name__ == "__main__":
                         cmd, shell=True).decode()
                     cpu = cpu.replace('\r', '').replace('\n', '').replace(
                         'Name                                      ', '').replace('  ', '').replace('(TM)', '').replace('(R)', '')
+                    cpu = host.get_cpu(bare=True)
                     ram = "%d GB" % int(
                         (round_tot_mem(unit="GB")))
                     cmd = "WMIC PATH WIN32_VIDEOCONTROLLER GET NAME"
                     gpu_ = subprocess.check_output(cmd, shell=True).decode()
                     gpu = gpu_.split('\n')[1].replace('\r', '').replace('\n', '').replace('  ', '').replace(
                         'NVIDIA ', '').replace('AMD ', '').replace('INTEL ', '').replace('ATI ', '').replace('Intel(R)', '')
+                    gpu = host.get_gpu(bare=True)
                     stats = "CPU: %s | \nRAM: %s | \nGPU: %s | \nCPU Usage: %d %% | \nRAM Usage: %d MB" % (
                         cpu, ram, gpu, int(psutil.cpu_percent()), psutil.virtual_memory().used/1024/1024)
-                    print(stats)
+                    #print(stats)
                     t = lis["title"]
                     a = lis["artist"]
                     b = lis["album"]
+                    if currently_playing != f"{a} - {t}":
+                        currently_playing = f"{a} - {t}"
+                        print(currently_playing)
                     if (t and a and b) == "":
                         '''ac.state = lis["state"]
                         ac.details = "No Media Information Available."'''
@@ -242,7 +255,7 @@ if __name__ == "__main__":
                         else:
                             RPC.update(state=lis["state"], details=lis["title"] + "\nby " + lis["artist"] + "\nfrom " + lis["album"],
                                        large_image='vlc_inactive', large_text=stats, small_image='vlc_i', small_text=img_text)
-                time.sleep(15.0)
-                signal.signal(signal.SIGINT, signal_handler)
+                time.sleep(2.5)
             except:
                 pass
+        #signal.signal(signal.SIGINT, signal_handler)
