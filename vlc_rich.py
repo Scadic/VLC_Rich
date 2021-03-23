@@ -168,7 +168,7 @@ def get_json_value_from_key(key):
         f.close()
         exit(1)
 
-
+currently_playing = ""
 
 if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1].lower() == ("/?" or "-?"):
@@ -231,10 +231,13 @@ if __name__ == "__main__":
                     gpu = host.get_gpu(bare=True)
                     stats = "CPU: %s | \nRAM: %s | \nGPU: %s | \nCPU Usage: %d %% | \nRAM Usage: %d MB" % (
                         cpu, ram, gpu, int(psutil.cpu_percent()), psutil.virtual_memory().used/1024/1024)
-                    print(stats)
+                    #print(stats)
                     t = lis["title"]
                     a = lis["artist"]
                     b = lis["album"]
+                    if currently_playing != f"{a} - {t}":
+                        currently_playing = f"{a} - {t}"
+                        print(currently_playing)
                     if (t and a and b) == "":
                         '''ac.state = lis["state"]
                         ac.details = "No Media Information Available."'''
@@ -255,4 +258,4 @@ if __name__ == "__main__":
                 time.sleep(2.5)
             except:
                 pass
-        #signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)

@@ -258,4 +258,4 @@ if __name__ == "__main__":
                 time.sleep(2.5)
             except:
                 pass
-        #signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
