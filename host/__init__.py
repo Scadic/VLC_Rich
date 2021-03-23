@@ -93,7 +93,7 @@ class Host():
         else:
             val = f"   {val[0].replace('CPU ', '')}"
         if bare:
-            val = val.replace('(TM)', '').replace('(R)', '').replace('Intel ', '').replace('AMD ', '')
+            val = re.sub(space_regexp, '', val.replace('(TM)', '').replace('(R)', '').replace('Intel ', '').replace('AMD ', ''))
             return val
         return f"CPU:\n{val}"
 
