@@ -169,6 +169,8 @@ def get_json_value_from_key(key):
         exit(1)
 
 currently_playing = ""
+current_state = ""
+send_update = False
 
 if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1].lower() == ("/?" or "-?"):
@@ -235,9 +237,6 @@ if __name__ == "__main__":
                     t = lis["title"]
                     a = lis["artist"]
                     b = lis["album"]
-                    if currently_playing != f"{a} - {t}":
-                        currently_playing = f"{a} - {t}"
-                        print(currently_playing)
                     if (t and a and b) == "":
                         '''ac.state = lis["state"]
                         ac.details = "No Media Information Available."'''
@@ -247,14 +246,24 @@ if __name__ == "__main__":
                         '''ac.state = lis["state"]
                         ac.details = lis["title"] + " by " + \
                             lis["artist"] + " from " + lis["album"]'''
-                        img_text = lis['state'] + ": " + \
-                            lis['title'] + " by " + lis['artist']
-                        if lis['state'].lower() == 'playing':
-                            RPC.update(state=lis["state"], details=lis["title"] + "\nby " + lis["artist"] + "\nfrom " +
-                                       lis["album"], large_image='vlc_icon', large_text=img_text, small_image='icon', small_text=stats)
-                        else:
-                            RPC.update(state=lis["state"], details=lis["title"] + "\nby " + lis["artist"] + "\nfrom " + lis["album"],
-                                       large_image='vlc_inactive', large_text=stats, small_image='vlc_i', small_text=img_text)
+                        if currently_playing != f"{a} - {t}":
+                            currently_playing = f"{a} - {t}"
+                            send_update = True
+                            print(currently_playing)
+                        elif current_state.lower() != lis['state'].lower():
+                            current_state = lis['state'].lower()
+                            send_update = True
+                            print(current_state)
+                        if send_update
+                            img_text = lis['state'] + ": " + \
+                                lis['title'] + " by " + lis['artist']
+                            if lis['state'].lower() == 'playing':
+                                RPC.update(state=lis["state"], details=lis["title"] + "\nby " + lis["artist"] + "\nfrom " +
+                                        lis["album"], large_image='vlc_icon', large_text=img_text, small_image='icon', small_text=stats)
+                            else:
+                                RPC.update(state=lis["state"], details=lis["title"] + "\nby " + lis["artist"] + "\nfrom " + lis["album"],
+                                        large_image='vlc_inactive', large_text=stats, small_image='vlc_i', small_text=img_text)
+                send_update = False
                 time.sleep(2.5)
             except:
                 pass
