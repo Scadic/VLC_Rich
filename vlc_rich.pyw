@@ -254,7 +254,7 @@ if __name__ == "__main__":
                             current_state = lis['state'].lower()
                             send_update = True
                             print(current_state)
-                        if send_update
+                        if send_update:
                             img_text = lis['state'] + ": " + \
                                 lis['title'] + " by " + lis['artist']
                             if lis['state'].lower() == 'playing':

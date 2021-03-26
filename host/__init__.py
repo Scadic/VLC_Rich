@@ -1,11 +1,13 @@
 from platform import system
-from subprocess import check_output
+from subprocess import check_output, getoutput, CalledProcessError
+from os import getenv
+from sys import argv
 import re
 import psutil
 
 space_regexp = '\s{2,}'
 
-def __get_wmic_property__(component="", property="", nic=False):
+def __get_wmic_property__(component="", property="", nic=False, node=f'/NODE:"{getenv("computername")}"'):
     '''
     Uses subprocess to query WMIC for information.\n
     Parameters:\n
@@ -20,10 +22,14 @@ def __get_wmic_property__(component="", property="", nic=False):
         return f"Windows Management Istrumentation is not available on {system()}"
     else:
         if nic:
-            cmd = f"WMIC {str(component)} GET {str(property)} | FINDSTR /i /v \"{str(property)} WAN RAS TAP TAP-Windows Generic\""    
+            cmd = f"WMIC {str(node)} {str(component)} GET {str(property)} | FINDSTR /i /v \"{str(property)} WAN RAS TAP TAP-Windows Generic\""    
         else:
-            cmd = f"WMIC {str(component)} GET {str(property)} | FINDSTR /i /v {str(property)}"
+            cmd = f"WMIC {str(node)} {str(component)} GET {str(property)} | FINDSTR /i /v {str(property)}"
         value = check_output(cmd, shell=True).decode().replace(str(property), "")
+        for a in argv:
+            if '--debug=true' == a.lower():
+                print(cmd)
+                print(value)
         return value
 
 def __conv_size__(size=0.0):
@@ -65,16 +71,18 @@ class Host():
     get_os() -> str\n
     get_hostname() -> str
     '''
-    def __init__(self, opsys=system()):
+    def __init__(self, opsys=system(), hostname=getenv('computername')):
         '''
         Create an instance of the class Host.\n
         Parameters:\n
         :opsys (str): Default is platform.system()\n
+        :hostname (str): Hostname of the machine to run WMIC. Default is current hostname.\n
         __init__() -> Host
         '''
         self.os = opsys
         if self.os == "Windows":
             self.wmic = __get_wmic_property__
+            self.node = f"/NODE:\"{hostname}\""
 
     def get_cpu(self, bare=False):
         '''
@@ -85,7 +93,7 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        val = __get_wmic_property__('cpu', 'name').replace('\r', '').strip().split('\n')
+        val = __get_wmic_property__('cpu', 'name', node=self.node).replace('\r', '').strip().split('\n')
         for i in range(len(val)):
             val[i] = re.sub(space_regexp, '', val[i])
         if len(val) > 1:
@@ -107,6 +115,7 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
+        val = int(__get_wmic_property__('OS', 'TotalVirtualMemorySize', node=self.node))//1024
         for g in range(1, 4097):
             gg = g * 1024
             if val > gg - 512 and val < gg + 511:
@@ -124,7 +133,7 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        val = __get_wmic_property__('PATH Win32_videoController', 'name').replace('\r', '').strip().split('\n')
+        val = __get_wmic_property__('PATH Win32_videoController', 'name', node=self.node).replace('\r', '').strip().split('\n')
         result = dict()
         for i in range(len(val)):
             val[i] = re.sub(space_regexp, '', val[i])
@@ -153,7 +162,7 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        val = __get_wmic_property__('NIC', 'Name', True).replace('\r', '').strip().split('\n')
+        val = __get_wmic_property__('NIC', 'Name', True, node=self.node).replace('\r', '').strip().split('\n')
         result = dict()
         for i in range(len(val)):
             val[i] = re.sub(space_regexp, '', val[i])
@@ -179,8 +188,8 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        manufacturer = __get_wmic_property__('BaseBoard', 'Manufacturer').replace('\r', '').strip()
-        val = __get_wmic_property__('BaseBoard', 'Product').replace('\r', '').strip().split('\n')
+        manufacturer = __get_wmic_property__('BaseBoard', 'Manufacturer', node=self.node).replace('\r', '').strip()
+        val = __get_wmic_property__('BaseBoard', 'Product', node=self.node).replace('\r', '').strip().split('\n')
         for i in range(len(val)):
             val[i] = re.sub(space_regexp, '', val[i])
         val = val[i]
@@ -195,8 +204,8 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        model = __get_wmic_property__('DiskDrive', 'Model', True).replace('\r', '').strip().split('\n')
-        size = __get_wmic_property__('DiskDrive', 'Size').replace('\r', '').strip().split('\n')
+        model = __get_wmic_property__('DiskDrive', 'Model', True, node=self.node).replace('\r', '').strip().split('\n')
+        size = __get_wmic_property__('DiskDrive', 'Size', node=self.node).replace('\r', '').strip().split('\n')
         result = dict()
         longet_model = 0
         for i in range(len(model)):
@@ -227,7 +236,7 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        val = __get_wmic_property__('os', 'caption').replace('\r', '').strip().split('\n')
+        val = __get_wmic_property__('os', 'caption', node=self.node).replace('\r', '').strip().split('\n')
         for i in range(len(val)):
             val[i] = re.sub(space_regexp, '', val[i])
         if len(val) > 1:
@@ -245,12 +254,15 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        hostname = re.sub(space_regexp, '', __get_wmic_property__('computersystem', 'caption').replace('\r', '').replace('\n', ''))
-        domainname = re.sub(space_regexp, '', __get_wmic_property__('computersystem', 'domain').replace('\r', '').replace('\n', ''))
+        hostname = re.sub(space_regexp, '', __get_wmic_property__('computersystem', 'caption', node=self.node).replace('\r', '').replace('\n', ''))
+        domainname = re.sub(space_regexp, '', __get_wmic_property__('computersystem', 'domain', node=self.node).replace('\r', '').replace('\n', ''))
         return f"Host:\n   {hostname}.{domainname}"
 
 if __name__ == "__main__":
-    host = Host()
+    if len(argv) >= 2:
+        host = Host(hostname=str(argv[1]))
+    else:
+        host = Host()
     print(host.get_cpu())
     print(host.get_disk())
     print(host.get_gpu())
