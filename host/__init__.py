@@ -115,7 +115,7 @@ class Host():
         '''
         if self.os != "Windows":
             return f"Windows Management Instrumentation is no available on {self.os}"
-        val = int(__get_wmic_property__('OS', 'TotalVirtualMemorySize', node=self.node))//1024
+        val = int(__get_wmic_property__('OS', 'TotalVisibleMemorySize', node=self.node))//1024
         for g in range(1, 4097):
             gg = g * 1024
             if val > gg - 512 and val < gg + 511:
@@ -245,7 +245,7 @@ class Host():
             val = f"{val[0]}"
         return f"OS:\n   {val}"
 
-    def get_hostname(self):
+    def get_hostname(self, bare=False):
         '''
         Get the hostname of the system the applications is running on.\n
         Parameteres:\n
@@ -256,6 +256,8 @@ class Host():
             return f"Windows Management Instrumentation is no available on {self.os}"
         hostname = re.sub(space_regexp, '', __get_wmic_property__('computersystem', 'caption', node=self.node).replace('\r', '').replace('\n', ''))
         domainname = re.sub(space_regexp, '', __get_wmic_property__('computersystem', 'domain', node=self.node).replace('\r', '').replace('\n', ''))
+        if bare:
+            return f"{hostname}.{domainname}"
         return f"Host:\n   {hostname}.{domainname}"
 
 if __name__ == "__main__":
