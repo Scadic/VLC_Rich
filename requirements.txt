@@ -8,5 +8,5 @@ psutil==5.8.0
 pypresence==4.0.0
 requests==2.25.1
 six==1.15.0
-urllib3==1.26.3
+urllib3==1.26.4
 virtualenv==20.3.0
